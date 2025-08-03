@@ -107,6 +107,12 @@ async function displayNotes() {
   // Clear existing notes after fetching to avoid duplicates when multiple
   // geolocation callbacks run concurrently.
   notesList.innerHTML = '';
+  if (notes.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = 'No nearby notes';
+    notesList.appendChild(li);
+    return;
+  }
   notes.forEach(n => {
     const li = document.createElement('li');
     const dist = Math.round(distance(latitude, longitude, n.lat, n.lon));
