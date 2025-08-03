@@ -1,0 +1,10 @@
+body {
+  font-family: sans-serif;
+  margin: 1rem;
+}
+button {
+  margin-top: 0.5rem;
+}
+#notesList li {
+  margin: 0.5rem 0;
+}
