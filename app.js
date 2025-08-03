@@ -87,10 +87,32 @@ locBtn.addEventListener('click', () => {
     alert('Geolocation not supported');
     return;
   }
-  navigator.geolocation.getCurrentPosition(pos => {
-    currentPosition = pos;
-    logPosition(pos);
-  });
+  const originalText = locBtn.textContent;
+  locBtn.disabled = true;
+  locBtn.textContent = 'Getting location...';
+
+  notesList.innerHTML = '';
+  const li = document.createElement('li');
+  li.textContent = 'Getting location...';
+  notesList.appendChild(li);
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      currentPosition = pos;
+      logPosition(pos);
+      locBtn.disabled = false;
+      locBtn.textContent = originalText;
+    },
+    () => {
+      alert('Unable to retrieve location');
+      locBtn.disabled = false;
+      locBtn.textContent = originalText;
+      notesList.innerHTML = '';
+      const li = document.createElement('li');
+      li.textContent = 'Unable to retrieve location';
+      notesList.appendChild(li);
+    }
+  );
 });
 
 async function displayNotes() {

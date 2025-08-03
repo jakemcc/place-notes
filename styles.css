@@ -16,6 +16,11 @@ body {
   align-items: center;
 }
 
+#locBtn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .content {
   padding: 1rem;
   margin-top: 60px;
