@@ -8,16 +8,22 @@
   <title>Place Notes</title>
 </head>
 <body>
-  <h1>Place Notes</h1>
-  <button id="locBtn">Get location</button>
+  <header class="top-bar">
+    <span>Place Notes</span>
+    <button id="locBtn">Get location</button>
+  </header>
 
-  <form id="noteForm">
-    <input id="title" placeholder="Title" required />
-    <textarea id="body" placeholder="Note body"></textarea>
-    <button type="submit">Add note</button>
-  </form>
+  <main class="content">
+    <ul id="notesList"></ul>
 
-  <ul id="notesList"></ul>
+    <form id="noteForm">
+      <input id="title" placeholder="Title" required />
+      <textarea id="body" placeholder="Note body"></textarea>
+      <button type="submit">Add note</button>
+    </form>
+
+    <button id="addNoteBtn" class="fab">+</button>
+  </main>
 
   <script src="app.js"></script>
 </body>

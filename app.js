@@ -68,11 +68,18 @@ async function deleteNote(id) {
 let currentPosition;
 const locBtn = document.getElementById('locBtn');
 const notesList = document.getElementById('notesList');
+const addNoteBtn = document.getElementById('addNoteBtn');
+const noteForm = document.getElementById('noteForm');
+
+addNoteBtn.addEventListener('click', () => {
+  noteForm.style.display = noteForm.style.display === 'block' ? 'none' : 'block';
+});
 
 function logPosition(pos) {
   const { latitude, longitude, accuracy } = pos.coords;
   const timestamp = pos.timestamp;
   console.log('Position:', { lat: latitude, lon: longitude, accuracy, timestamp });
+  displayNotes();
 }
 
 locBtn.addEventListener('click', () => {
@@ -91,11 +98,20 @@ locBtn.addEventListener('click', () => {
 });
 
 async function displayNotes() {
-  const notes = await getAllNotes();
   notesList.innerHTML = '';
+  if (!currentPosition) {
+    const li = document.createElement('li');
+    li.textContent = 'Get location to view nearby notes';
+    notesList.appendChild(li);
+    return;
+  }
+
+  const { latitude, longitude } = currentPosition.coords;
+  const notes = await getNotesByRadius(latitude, longitude, 100);
   notes.forEach(n => {
     const li = document.createElement('li');
-    li.textContent = `${n.title} (${n.lat.toFixed(3)}, ${n.lon.toFixed(3)})`;
+    const dist = Math.round(distance(latitude, longitude, n.lat, n.lon));
+    li.textContent = `${n.title} - ${dist} m`;
     const del = document.createElement('button');
     del.textContent = 'Delete';
     del.addEventListener('click', async () => {
@@ -107,7 +123,7 @@ async function displayNotes() {
   });
 }
 
-document.getElementById('noteForm').addEventListener('submit', async e => {
+noteForm.addEventListener('submit', async e => {
   e.preventDefault();
   if (!currentPosition) {
     alert('Get location first');
@@ -126,6 +142,7 @@ document.getElementById('noteForm').addEventListener('submit', async e => {
   };
   await addNote(note);
   e.target.reset();
+  noteForm.style.display = 'none';
   displayNotes();
 });
 
