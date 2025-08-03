@@ -5,6 +5,16 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Request persistent storage so the notes database is less likely to be
+// cleared by the browser under storage pressure.
+if (navigator.storage && navigator.storage.persist) {
+  window.addEventListener('load', () => {
+    navigator.storage.persist().then(granted => {
+      console.log(`Persistent storage ${granted ? 'granted' : 'denied'}`);
+    });
+  });
+}
+
 // IndexedDB wrapper
 const dbPromise = new Promise((resolve, reject) => {
   const request = indexedDB.open('notes-db', 1);
