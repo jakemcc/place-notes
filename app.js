@@ -66,6 +66,7 @@ async function deleteNote(id) {
 
 // UI and geolocation
 let currentPosition;
+let watchId;
 const locBtn = document.getElementById('locBtn');
 const notesList = document.getElementById('notesList');
 const addNoteBtn = document.getElementById('addNoteBtn');
@@ -91,15 +92,17 @@ locBtn.addEventListener('click', () => {
     currentPosition = pos;
     logPosition(pos);
   });
-  navigator.geolocation.watchPosition(pos => {
-    currentPosition = pos;
-    logPosition(pos);
-  });
+  if (watchId == null) {
+    watchId = navigator.geolocation.watchPosition(pos => {
+      currentPosition = pos;
+      logPosition(pos);
+    });
+  }
 });
 
 async function displayNotes() {
-  notesList.innerHTML = '';
   if (!currentPosition) {
+    notesList.innerHTML = '';
     const li = document.createElement('li');
     li.textContent = 'Get location to view nearby notes';
     notesList.appendChild(li);
@@ -108,6 +111,7 @@ async function displayNotes() {
 
   const { latitude, longitude } = currentPosition.coords;
   const notes = await getNotesByRadius(latitude, longitude, 100);
+  notesList.innerHTML = '';
   notes.forEach(n => {
     const li = document.createElement('li');
     const dist = Math.round(distance(latitude, longitude, n.lat, n.lon));
