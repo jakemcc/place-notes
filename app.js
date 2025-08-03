@@ -111,14 +111,29 @@ async function displayNotes() {
   notes.forEach(n => {
     const li = document.createElement('li');
     const dist = Math.round(distance(latitude, longitude, n.lat, n.lon));
-    li.textContent = `${n.title} - ${dist} m`;
+
+    const title = document.createElement('span');
+    title.textContent = `${n.title} - ${dist} m`;
+    title.className = 'note-title';
+
+    const body = document.createElement('div');
+    body.textContent = n.body;
+    body.className = 'note-body';
+
+    title.addEventListener('click', () => {
+      body.style.display = body.style.display === 'none' ? 'block' : 'none';
+    });
+
     const del = document.createElement('button');
     del.textContent = 'Delete';
     del.addEventListener('click', async () => {
       await deleteNote(n.id);
       displayNotes();
     });
+
+    li.appendChild(title);
     li.appendChild(del);
+    li.appendChild(body);
     notesList.appendChild(li);
   });
 }

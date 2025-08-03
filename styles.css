@@ -65,3 +65,13 @@ body {
 #noteForm button {
   margin-top: 0.5rem;
 }
+
+.note-title {
+  cursor: pointer;
+  display: inline-block;
+}
+
+.note-body {
+  display: none;
+  margin-top: 0.25rem;
+}
