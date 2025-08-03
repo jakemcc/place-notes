@@ -69,9 +69,17 @@ body {
 .note-title {
   cursor: pointer;
   display: inline-block;
+  color: #6200ee;
+  text-decoration: underline;
 }
 
 .note-body {
   display: none;
   margin-top: 0.25rem;
+}
+
+.note-meta {
+  color: #555;
+  margin-left: 0.25rem;
+  font-size: 0.9em;
 }

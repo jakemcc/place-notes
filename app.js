@@ -118,8 +118,13 @@ async function displayNotes() {
     const dist = Math.round(distance(latitude, longitude, n.lat, n.lon));
 
     const title = document.createElement('span');
-    title.textContent = `${n.title} - ${dist} m`;
+    title.textContent = n.title;
     title.className = 'note-title';
+
+    const meta = document.createElement('span');
+    const date = n.createdAt ? new Date(n.createdAt).toLocaleDateString() : '';
+    meta.textContent = ` - ${dist} m${date ? ` - ${date}` : ''}`;
+    meta.className = 'note-meta';
 
     const body = document.createElement('div');
     body.textContent = n.body;
@@ -137,6 +142,7 @@ async function displayNotes() {
     });
 
     li.appendChild(title);
+    li.appendChild(meta);
     li.appendChild(del);
     li.appendChild(body);
     notesList.appendChild(li);
