@@ -91,10 +91,6 @@ locBtn.addEventListener('click', () => {
     currentPosition = pos;
     logPosition(pos);
   });
-  navigator.geolocation.watchPosition(pos => {
-    currentPosition = pos;
-    logPosition(pos);
-  });
 });
 
 async function displayNotes() {
