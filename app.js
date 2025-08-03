@@ -98,8 +98,8 @@ locBtn.addEventListener('click', () => {
 });
 
 async function displayNotes() {
-  notesList.innerHTML = '';
   if (!currentPosition) {
+    notesList.innerHTML = '';
     const li = document.createElement('li');
     li.textContent = 'Get location to view nearby notes';
     notesList.appendChild(li);
@@ -108,6 +108,9 @@ async function displayNotes() {
 
   const { latitude, longitude } = currentPosition.coords;
   const notes = await getNotesByRadius(latitude, longitude, 100);
+  // Clear existing notes after fetching to avoid duplicates when multiple
+  // geolocation callbacks run concurrently.
+  notesList.innerHTML = '';
   notes.forEach(n => {
     const li = document.createElement('li');
     const dist = Math.round(distance(latitude, longitude, n.lat, n.lon));
