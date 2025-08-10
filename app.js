@@ -162,6 +162,47 @@ searchForm.addEventListener('submit', async e => {
   }
 });
 
+searchForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const query = searchQuery.value.trim();
+  if (!query) {
+    return;
+  }
+  const now = Date.now();
+  if (now - lastSearchTime < 1000) {
+    alert('Please wait before searching again.');
+    return;
+  }
+  lastSearchTime = now;
+  searchResult.textContent = 'Searching...';
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'PlaceNotes/1.0 (contact@example.com)'
+      }
+    });
+    const data = await res.json();
+    if (!data.length) {
+      searchResult.textContent = 'No results';
+      return;
+    }
+    const place = data[0];
+    selectedPosition = {
+      coords: {
+        latitude: parseFloat(place.lat),
+        longitude: parseFloat(place.lon)
+      }
+    };
+    searchResult.textContent = place.display_name;
+    noteForm.style.display = 'block';
+  } catch (err) {
+    console.error(err);
+    searchResult.textContent = 'Search failed';
+  }
+});
+
 function logPosition(pos) {
   const { latitude, longitude, accuracy } = pos.coords;
   const timestamp = pos.timestamp;
@@ -191,6 +232,7 @@ locBtn.addEventListener('click', () => {
       // device's coordinates.
       locationStore.setCurrent(pos);
       locationStore.setSelected(pos);
+
       logPosition(pos);
       locBtn.disabled = false;
       locBtn.textContent = originalText;
@@ -273,13 +315,13 @@ async function displayNotes() {
 noteForm.addEventListener('submit', async e => {
   e.preventDefault();
   const selectedPosition = locationStore.getSelected();
+
   if (!selectedPosition) {
     alert('Select a location first');
     return;
   }
   const title = document.getElementById('title').value;
   const body = document.getElementById('body').value;
-  // Pull coordinates from the selected location rather than the device.
   const { latitude: lat, longitude: lon } = selectedPosition.coords;
   const note = {
     id: Date.now(),
