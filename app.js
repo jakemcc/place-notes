@@ -75,14 +75,91 @@ async function deleteNote(id) {
 }
 
 // UI and geolocation
-let currentPosition;
+/**
+ * Singleton store tracking user location.
+ *
+ * "current" holds the last geolocation retrieved from the device.
+ * "selected" holds the coordinates where a new note will be saved,
+ * which may come from the current position or a remote place search.
+ * Searching only updates "selected" while the geolocation button sets
+ * both values to the device's location.
+ */
+const locationStore = (() => {
+  let currentPosition;
+  let selectedPosition;
+  return {
+    getCurrent: () => currentPosition,
+    setCurrent: pos => { currentPosition = pos; },
+    getSelected: () => selectedPosition,
+    setSelected: pos => { selectedPosition = pos; }
+  };
+})();
+// Expose for tests to inspect or mock current/selected coordinates.
+// Production code should not read or modify this global directly.
+window.locationStore = locationStore;
 const locBtn = document.getElementById('locBtn');
 const notesList = document.getElementById('notesList');
 const addNoteBtn = document.getElementById('addNoteBtn');
 const noteForm = document.getElementById('noteForm');
+const searchForm = document.getElementById('searchForm');
+const searchQuery = document.getElementById('searchQuery');
+const searchResult = document.getElementById('searchResult');
+let lastSearchTime = 0;
 
 addNoteBtn.addEventListener('click', () => {
-  noteForm.style.display = noteForm.style.display === 'block' ? 'none' : 'block';
+  const isOpen = noteForm.style.display === 'block';
+  noteForm.style.display = isOpen ? 'none' : 'block';
+  if (isOpen) {
+    // Closing the form clears any previous search details.
+    searchResult.textContent = '';
+  }
+});
+
+/**
+ * Handle remote place lookups. A successful search stores the returned
+ * coordinates as the "selected" location so a note can be created for
+ * that place even if the user is elsewhere.
+ */
+searchForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const query = searchQuery.value.trim();
+  if (!query) {
+    return;
+  }
+  const now = Date.now();
+  if (now - lastSearchTime < 1000) {
+    alert('Please wait before searching again.');
+    return;
+  }
+  lastSearchTime = now;
+  searchResult.textContent = 'Searching...';
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'PlaceNotes/1.0 (contact@example.com)'
+      }
+    });
+    const data = await res.json();
+    if (!data.length) {
+      searchResult.textContent = 'No results';
+      return;
+    }
+    const place = data[0];
+    // Save remote coordinates as the selected location for note creation.
+    locationStore.setSelected({
+      coords: {
+        latitude: parseFloat(place.lat),
+        longitude: parseFloat(place.lon)
+      }
+    });
+    searchResult.textContent = place.display_name;
+    noteForm.style.display = 'block';
+  } catch (err) {
+    console.error(err);
+    searchResult.textContent = 'Search failed';
+  }
 });
 
 function logPosition(pos) {
@@ -92,6 +169,8 @@ function logPosition(pos) {
   displayNotes();
 }
 
+// Fetch the device location and treat it as the currently selected spot.
+// This lets users save notes for where they are without performing a search.
 locBtn.addEventListener('click', () => {
   if (!navigator.geolocation) {
     alert('Geolocation not supported');
@@ -108,7 +187,10 @@ locBtn.addEventListener('click', () => {
 
   navigator.geolocation.getCurrentPosition(
     pos => {
-      currentPosition = pos;
+      // Geolocation updates both current and selected positions to the
+      // device's coordinates.
+      locationStore.setCurrent(pos);
+      locationStore.setSelected(pos);
       logPosition(pos);
       locBtn.disabled = false;
       locBtn.textContent = originalText;
@@ -125,7 +207,9 @@ locBtn.addEventListener('click', () => {
   );
 });
 
+// Nearby notes are displayed relative to the device's current position.
 async function displayNotes() {
+  const currentPosition = locationStore.getCurrent();
   if (!currentPosition) {
     notesList.innerHTML = '';
     const li = document.createElement('li');
@@ -181,15 +265,22 @@ async function displayNotes() {
   });
 }
 
+/**
+ * Create a note at the currently selected coordinates. The selected
+ * position may come from geolocation or a remote search, allowing notes
+ * for places other than the device's present location.
+ */
 noteForm.addEventListener('submit', async e => {
   e.preventDefault();
-  if (!currentPosition) {
-    alert('Get location first');
+  const selectedPosition = locationStore.getSelected();
+  if (!selectedPosition) {
+    alert('Select a location first');
     return;
   }
   const title = document.getElementById('title').value;
   const body = document.getElementById('body').value;
-  const { latitude: lat, longitude: lon } = currentPosition.coords;
+  // Pull coordinates from the selected location rather than the device.
+  const { latitude: lat, longitude: lon } = selectedPosition.coords;
   const note = {
     id: Date.now(),
     title,
@@ -198,10 +289,19 @@ noteForm.addEventListener('submit', async e => {
     lon,
     createdAt: new Date().toISOString()
   };
-  await addNote(note);
-  e.target.reset();
-  noteForm.style.display = 'none';
-  displayNotes();
+  try {
+    await addNote(note);
+    e.target.reset();
+    noteForm.style.display = 'none';
+    displayNotes();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to save note');
+  } finally {
+    // Clear search info so stale results aren't shown after adding or failing
+    // to add a note.
+    searchResult.textContent = '';
+  }
 });
 
 window.addEventListener('load', displayNotes);

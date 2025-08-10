@@ -1,0 +1,16 @@
+{
+  "name": "place-notes",
+  "version": "1.0.0",
+  "description": "A minimal progressive web app that lets you create notes associated with your current location. It is installable and works offline.",
+  "main": "app.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
