@@ -76,13 +76,59 @@ async function deleteNote(id) {
 
 // UI and geolocation
 let currentPosition;
+let selectedPosition;
 const locBtn = document.getElementById('locBtn');
 const notesList = document.getElementById('notesList');
 const addNoteBtn = document.getElementById('addNoteBtn');
 const noteForm = document.getElementById('noteForm');
+const searchForm = document.getElementById('searchForm');
+const searchQuery = document.getElementById('searchQuery');
+const searchResult = document.getElementById('searchResult');
+let lastSearchTime = 0;
 
 addNoteBtn.addEventListener('click', () => {
   noteForm.style.display = noteForm.style.display === 'block' ? 'none' : 'block';
+});
+
+searchForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const query = searchQuery.value.trim();
+  if (!query) {
+    return;
+  }
+  const now = Date.now();
+  if (now - lastSearchTime < 1000) {
+    alert('Please wait before searching again.');
+    return;
+  }
+  lastSearchTime = now;
+  searchResult.textContent = 'Searching...';
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'PlaceNotes/1.0 (contact@example.com)'
+      }
+    });
+    const data = await res.json();
+    if (!data.length) {
+      searchResult.textContent = 'No results';
+      return;
+    }
+    const place = data[0];
+    selectedPosition = {
+      coords: {
+        latitude: parseFloat(place.lat),
+        longitude: parseFloat(place.lon)
+      }
+    };
+    searchResult.textContent = place.display_name;
+    noteForm.style.display = 'block';
+  } catch (err) {
+    console.error(err);
+    searchResult.textContent = 'Search failed';
+  }
 });
 
 function logPosition(pos) {
@@ -109,6 +155,7 @@ locBtn.addEventListener('click', () => {
   navigator.geolocation.getCurrentPosition(
     pos => {
       currentPosition = pos;
+      selectedPosition = pos;
       logPosition(pos);
       locBtn.disabled = false;
       locBtn.textContent = originalText;
@@ -183,13 +230,13 @@ async function displayNotes() {
 
 noteForm.addEventListener('submit', async e => {
   e.preventDefault();
-  if (!currentPosition) {
-    alert('Get location first');
+  if (!selectedPosition) {
+    alert('Select a location first');
     return;
   }
   const title = document.getElementById('title').value;
   const body = document.getElementById('body').value;
-  const { latitude: lat, longitude: lon } = currentPosition.coords;
+  const { latitude: lat, longitude: lon } = selectedPosition.coords;
   const note = {
     id: Date.now(),
     title,
