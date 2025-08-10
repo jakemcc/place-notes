@@ -107,12 +107,51 @@ const searchQuery = document.getElementById('searchQuery');
 const searchResult = document.getElementById('searchResult');
 let lastSearchTime = 0;
 
+function fetchLocation() {
+  if (!navigator.geolocation) {
+    alert('Geolocation not supported');
+    return;
+  }
+  const originalText = locBtn.textContent;
+  locBtn.disabled = true;
+  locBtn.textContent = 'Getting location...';
+
+  notesList.innerHTML = '';
+  const li = document.createElement('li');
+  li.textContent = 'Getting location...';
+  notesList.appendChild(li);
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      // Geolocation updates both current and selected positions to the
+      // device's coordinates.
+      locationStore.setCurrent(pos);
+      locationStore.setSelected(pos);
+
+      logPosition(pos);
+      locBtn.disabled = false;
+      locBtn.textContent = originalText;
+    },
+    () => {
+      alert('Unable to retrieve location');
+      locBtn.disabled = false;
+      locBtn.textContent = originalText;
+      notesList.innerHTML = '';
+      const li = document.createElement('li');
+      li.textContent = 'Unable to retrieve location';
+      notesList.appendChild(li);
+    }
+  );
+}
+
 addNoteBtn.addEventListener('click', () => {
   const isOpen = noteForm.style.display === 'block';
   noteForm.style.display = isOpen ? 'none' : 'block';
   if (isOpen) {
     // Closing the form clears any previous search details.
     searchResult.textContent = '';
+  } else if (!locationStore.getCurrent()) {
+    fetchLocation();
   }
 });
 
@@ -219,42 +258,7 @@ function logPosition(pos) {
 
 // Fetch the device location and treat it as the currently selected spot.
 // This lets users save notes for where they are without performing a search.
-locBtn.addEventListener('click', () => {
-  if (!navigator.geolocation) {
-    alert('Geolocation not supported');
-    return;
-  }
-  const originalText = locBtn.textContent;
-  locBtn.disabled = true;
-  locBtn.textContent = 'Getting location...';
-
-  notesList.innerHTML = '';
-  const li = document.createElement('li');
-  li.textContent = 'Getting location...';
-  notesList.appendChild(li);
-
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      // Geolocation updates both current and selected positions to the
-      // device's coordinates.
-      locationStore.setCurrent(pos);
-      locationStore.setSelected(pos);
-
-      logPosition(pos);
-      locBtn.disabled = false;
-      locBtn.textContent = originalText;
-    },
-    () => {
-      alert('Unable to retrieve location');
-      locBtn.disabled = false;
-      locBtn.textContent = originalText;
-      notesList.innerHTML = '';
-      const li = document.createElement('li');
-      li.textContent = 'Unable to retrieve location';
-      notesList.appendChild(li);
-    }
-  );
-});
+locBtn.addEventListener('click', fetchLocation);
 
 // Nearby notes are displayed relative to the device's current position.
 async function displayNotes() {
