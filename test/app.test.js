@@ -188,3 +188,19 @@ test('multiple searches update coordinates', async () => {
   assert.equal(win.searchResult.textContent, 'Second');
 });
 
+test('clicking add note triggers geolocation when none fetched', async () => {
+  const win = setup();
+  let called = false;
+  const fakePos = { coords: { latitude: 13, longitude: 14 }, timestamp: 0 };
+  win.navigator.geolocation = {
+    getCurrentPosition(success) {
+      called = true;
+      success(fakePos);
+    }
+  };
+  win.document.getElementById('addNoteBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 0));
+  assert.ok(called);
+  assert.deepEqual(win.locationStore.getCurrent().coords, { latitude: 13, longitude: 14 });
+});
+
