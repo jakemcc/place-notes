@@ -101,6 +101,7 @@ const locBtn = document.getElementById('locBtn');
 const notesList = document.getElementById('notesList');
 const addNoteBtn = document.getElementById('addNoteBtn');
 const noteForm = document.getElementById('noteForm');
+const cancelNoteBtn = document.getElementById('cancelNoteBtn');
 const searchForm = document.getElementById('searchForm');
 const searchQuery = document.getElementById('searchQuery');
 const searchResult = document.getElementById('searchResult');
@@ -113,6 +114,12 @@ addNoteBtn.addEventListener('click', () => {
     // Closing the form clears any previous search details.
     searchResult.textContent = '';
   }
+});
+
+cancelNoteBtn.addEventListener('click', () => {
+  noteForm.reset();
+  noteForm.style.display = 'none';
+  searchResult.textContent = '';
 });
 
 /**

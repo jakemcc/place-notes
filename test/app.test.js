@@ -92,6 +92,18 @@ test('closing note form clears search result', async () => {
   assert.equal(win.searchResult.textContent, '');
 });
 
+test('cancel button hides form and clears search result', async () => {
+  const fetchStub = () => Promise.resolve({ json: () => [{ lat: '11', lon: '12', display_name: 'CancelTest' }] });
+  const win = setup({ fetch: fetchStub });
+  win.document.getElementById('searchQuery').value = 'cancel';
+  win.document.getElementById('searchForm').dispatchEvent(new win.Event('submit', { bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(win.document.getElementById('noteForm').style.display, 'block');
+  win.document.getElementById('cancelNoteBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
+  assert.equal(win.document.getElementById('noteForm').style.display, 'none');
+  assert.equal(win.searchResult.textContent, '');
+});
+
 test('search result cleared after failed note save', async () => {
   const fetchStub = () => Promise.resolve({ json: () => [{ lat: '9', lon: '10', display_name: 'Qux' }] });
   let alertMsg = '';
