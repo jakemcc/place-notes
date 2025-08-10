@@ -4,12 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
-function setup({ fetch: fetchImpl, alert: alertImpl } = {}) {
+function setup({ fetch: fetchImpl, alert: alertImpl, serviceWorker } = {}) {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost' });
   const { window } = dom;
 
-  window.navigator.serviceWorker = { register: () => Promise.resolve() };
+  window.navigator.serviceWorker = serviceWorker || { register: () => Promise.resolve({ addEventListener() {} }) };
   window.navigator.storage = { persist: () => Promise.resolve(true) };
   window.alert = alertImpl || (() => {});
 
@@ -202,5 +202,34 @@ test('clicking add note triggers geolocation when none fetched', async () => {
   await new Promise(r => setTimeout(r, 0));
   assert.ok(called);
   assert.deepEqual(win.locationStore.getCurrent().coords, { latitude: 13, longitude: 14 });
+});
+
+test('service worker update prompts for reload', async () => {
+  let alertMsg = '';
+  let updateHandler;
+  let stateHandler;
+  const reg = {
+    addEventListener(type, handler) {
+      if (type === 'updatefound') updateHandler = handler;
+    },
+    installing: {
+      state: 'installing',
+      addEventListener(type, handler) {
+        if (type === 'statechange') stateHandler = handler;
+      }
+    }
+  };
+  const serviceWorker = {
+    register: () => Promise.resolve(reg),
+    controller: {}
+  };
+  setup({ alert: msg => { alertMsg = msg; }, serviceWorker });
+
+  await new Promise(r => setTimeout(r, 0));
+  updateHandler();
+  reg.installing.state = 'installed';
+  stateHandler();
+
+  assert.equal(alertMsg, 'New version available. Please reload.');
 });
 
