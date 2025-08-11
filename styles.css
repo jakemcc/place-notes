@@ -88,3 +88,8 @@ body {
   margin-left: 0.25rem;
   font-size: 0.9em;
 }
+
+/* Adds spacing between the delete button and note metadata */
+.note-delete {
+  margin-left: 0.5rem;
+}

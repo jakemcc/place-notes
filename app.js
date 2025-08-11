@@ -316,6 +316,7 @@ async function displayNotes() {
 
     const del = document.createElement('button');
     del.textContent = 'Delete';
+    del.className = 'note-delete';
     del.addEventListener('click', async () => {
       await deleteNote(n.id);
       displayNotes();
