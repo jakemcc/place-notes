@@ -271,6 +271,7 @@ noteSearchForm.addEventListener('submit', async e => {
   }
 });
 
+
 function logPosition(pos) {
   const { latitude, longitude, accuracy } = pos.coords;
   const timestamp = pos.timestamp;
