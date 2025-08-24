@@ -233,3 +233,25 @@ test('service worker update prompts for reload', async () => {
   assert.equal(alertMsg, 'New version available. Please reload.');
 });
 
+test('searchNotes filters by text', async () => {
+  const win = setup();
+  win.getAllNotes = async () => [
+    { id: 1, title: 'Hello', body: 'World', lat: 0, lon: 0 },
+    { id: 2, title: 'Bye', body: 'Moon', lat: 1, lon: 1 }
+  ];
+  const res = await win.searchNotes({ text: 'hell' });
+  assert.equal(res.length, 1);
+  assert.equal(res[0].id, 1);
+});
+
+test('searchNotes filters by location', async () => {
+  const win = setup();
+  win.getAllNotes = async () => [
+    { id: 1, title: 'A', body: '', lat: 0, lon: 0 },
+    { id: 2, title: 'B', body: '', lat: 0.002, lon: 0 }
+  ];
+  const res = await win.searchNotes({ lat: 0, lon: 0, radius: 150 });
+  assert.equal(res.length, 1);
+  assert.equal(res[0].id, 1);
+});
+

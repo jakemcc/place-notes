@@ -85,6 +85,21 @@ async function deleteNote(id) {
   return transactionPromise(tx);
 }
 
+async function searchNotes({ text, lat, lon, radius = 100 } = {}) {
+  const notes = await getAllNotes();
+  const lower = text ? text.toLowerCase() : null;
+  return notes.filter(n => {
+    const textMatch = !lower ||
+      (n.title && n.title.toLowerCase().includes(lower)) ||
+      (n.body && n.body.toLowerCase().includes(lower));
+    const locMatch = (typeof lat !== 'number' || typeof lon !== 'number')
+      ? true
+      : distance(lat, lon, n.lat, n.lon) <= radius;
+    return textMatch && locMatch;
+  });
+}
+window.searchNotes = searchNotes;
+
 // UI and geolocation
 /**
  * Singleton store tracking user location.
@@ -116,6 +131,8 @@ const cancelNoteBtn = document.getElementById('cancelNoteBtn');
 const searchForm = document.getElementById('searchForm');
 const searchQuery = document.getElementById('searchQuery');
 const searchResult = document.getElementById('searchResult');
+const noteSearchForm = document.getElementById('noteSearchForm');
+const noteSearchQuery = document.getElementById('noteSearchQuery');
 let lastSearchTime = 0;
 
 function fetchLocation() {
@@ -219,6 +236,41 @@ searchForm.addEventListener('submit', async e => {
   }
 });
 
+noteSearchForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const query = noteSearchQuery.value.trim();
+  if (!query) {
+    return;
+  }
+  let notes = await searchNotes({ text: query });
+  if (notes.length > 0) {
+    renderNotes(notes);
+    return;
+  }
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'PlaceNotes/1.0 (contact@example.com)'
+      }
+    });
+    const data = await res.json();
+    if (!data.length) {
+      renderNotes([]);
+      return;
+    }
+    const place = data[0];
+    const lat = parseFloat(place.lat);
+    const lon = parseFloat(place.lon);
+    notes = await searchNotes({ lat, lon, radius: 100 });
+    renderNotes(notes, lat, lon);
+  } catch (err) {
+    console.error(err);
+    renderNotes([]);
+  }
+});
+
 
 function logPosition(pos) {
   const { latitude, longitude, accuracy } = pos.coords;
@@ -230,32 +282,21 @@ function logPosition(pos) {
 // Fetch the device location and treat it as the currently selected spot.
 // This lets users save notes for where they are without performing a search.
 locBtn.addEventListener('click', fetchLocation);
-
-// Nearby notes are displayed relative to the device's current position.
-async function displayNotes() {
-  const currentPosition = locationStore.getCurrent();
-  if (!currentPosition) {
-    notesList.innerHTML = '';
-    const li = document.createElement('li');
-    li.textContent = 'Get location to view nearby notes';
-    notesList.appendChild(li);
-    return;
-  }
-
-  const { latitude, longitude } = currentPosition.coords;
-  const notes = await getNotesByRadius(latitude, longitude, 100);
-  // Clear existing notes after fetching to avoid duplicates when multiple
-  // geolocation callbacks run concurrently.
+function renderNotes(notes, baseLat, baseLon) {
   notesList.innerHTML = '';
   if (notes.length === 0) {
     const li = document.createElement('li');
-    li.textContent = 'No nearby notes';
+    li.textContent = 'No matching notes';
     notesList.appendChild(li);
     return;
   }
   notes.forEach(n => {
     const li = document.createElement('li');
-    const dist = Math.round(distance(latitude, longitude, n.lat, n.lon));
+    let distText = '';
+    if (typeof baseLat === 'number' && typeof baseLon === 'number') {
+      const dist = Math.round(distance(baseLat, baseLon, n.lat, n.lon));
+      distText = `${dist} m`;
+    }
 
     const title = document.createElement('span');
     title.textContent = n.title;
@@ -263,7 +304,7 @@ async function displayNotes() {
 
     const meta = document.createElement('span');
     const date = n.createdAt ? new Date(n.createdAt).toLocaleDateString() : '';
-    meta.textContent = ` - ${dist} m${date ? ` - ${date}` : ''}`;
+    meta.textContent = ` - ${distText}${distText && date ? ' - ' : ''}${date}`;
     meta.className = 'note-meta';
 
     const body = document.createElement('div');
@@ -279,7 +320,8 @@ async function displayNotes() {
     del.className = 'note-delete';
     del.addEventListener('click', async () => {
       await deleteNote(n.id);
-      displayNotes();
+      const remaining = notes.filter(m => m.id !== n.id);
+      renderNotes(remaining, baseLat, baseLon);
     });
 
     li.appendChild(title);
@@ -288,6 +330,22 @@ async function displayNotes() {
     li.appendChild(body);
     notesList.appendChild(li);
   });
+}
+
+// Nearby notes are displayed relative to the device's current position.
+async function displayNotes() {
+  const currentPosition = locationStore.getCurrent();
+  if (!currentPosition) {
+    notesList.innerHTML = '';
+    const li = document.createElement('li');
+    li.textContent = 'Get location to view nearby notes';
+    notesList.appendChild(li);
+    return;
+  }
+
+  const { latitude, longitude } = currentPosition.coords;
+  const notes = await getNotesByRadius(latitude, longitude, 100);
+  renderNotes(notes, latitude, longitude);
 }
 
 /**
